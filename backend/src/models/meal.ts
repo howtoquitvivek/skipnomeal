@@ -17,31 +17,34 @@ const MealSchema = new Schema({
       quantity: {
         type: Number,
         required: true,
-        min: 1, // grams of this FoodItem in the meal
+        min: 1,
+      },
+      servingSize: {
+        type: String, // optional, only used for "serving" type items
       },
     },
   ],
 
-  // Total nutrition fields cached for quick lookup
+  // Cached total macros for the meal
   totalCalories: {
     type: Number,
-    min: 0,
     default: 0,
+    min: 0,
   },
   totalCarbs: {
     type: Number,
-    min: 0,
     default: 0,
+    min: 0,
   },
   totalProtein: {
     type: Number,
-    min: 0,
     default: 0,
+    min: 0,
   },
   totalFats: {
     type: Number,
-    min: 0,
     default: 0,
+    min: 0,
   },
 
   createdAt: {

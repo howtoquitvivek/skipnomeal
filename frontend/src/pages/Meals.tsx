@@ -9,10 +9,8 @@ import {
   Milk,
   Soup,
   Pizza,
-  Pencil,
   Trash2,
 } from "lucide-react";
-import EditMealModal from "../components/meals/EditMealModal";
 
 // --- Types ---
 type FoodItem = {
@@ -23,6 +21,7 @@ type FoodItem = {
   fats: number;
   calories: number;
   quantityType: string;
+  servingLabel: object;
   quantity: number;
 };
 
@@ -30,7 +29,9 @@ type Food = {
   _id: string;
   foodItem: FoodItem;
   quantity: number;
+  servingSize?: string;
 };
+
 
 type Meal = {
   _id: string;
@@ -45,14 +46,8 @@ type Meal = {
 export default function Meals() {
   const [meals, setMeals] = useState<Meal[]>([]);
   const [hoveredMeal, setHoveredMeal] = useState<string | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [mealToEdit, setMealToEdit] = useState<Meal | null>(null);
   const navigate = useNavigate();
 
-  const openEditModal = (meal: Meal) => {
-    setMealToEdit(meal);
-    setIsEditModalOpen(true);
-  };
 
   const deleteMealApi = async (id: string) => {
     try {
@@ -161,8 +156,15 @@ export default function Meals() {
                     >
                       {food.foodItem ? (
                         <span className="truncate">
-                          {food.foodItem.name} — {food.quantity}{" "}
-                          {food.foodItem.quantityType}
+                          {food.foodItem.name}{" "}
+                          {food.foodItem.quantityType === "serving" && food.servingSize
+                            ? (() => {
+                                const servingData = (food.foodItem.servingLabel as any)?.[food.servingSize];
+                                return servingData 
+                                  ? `${food.servingSize} (${servingData.quantity}g)`
+                                  : `${food.quantity} servings`;
+                              })()
+                            : `${food.quantity}${food.foodItem.quantityType}`}
                         </span>
                       ) : (
                         <span className="text-red-400">Unknown Food Item</span>
@@ -172,33 +174,7 @@ export default function Meals() {
                 </ul>
               </div>
 
-              {isEditModalOpen && mealToEdit && (
-                <EditMealModal
-                  meal={mealToEdit}
-                  onClose={() => setIsEditModalOpen(false)}
-                  onSave={(updatedMeal) => {
-                    setMeals((prev) =>
-                      prev.map((m) =>
-                        m._id === updatedMeal._id ? (updatedMeal as Meal) : m
-                      )
-                    );
-                    setIsEditModalOpen(false);
-                    setMealToEdit(null);
-                  }}
-                />
-              )}
-
               <div className="mt-3 flex space-x-4">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openEditModal(meal);
-                  }}
-                  className="flex items-center space-x-1 text-blue-400 hover:text-blue-600 transition"
-                >
-                  <Pencil className="w-4 h-4" />
-                  <span className="text-sm">Edit</span>
-                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();

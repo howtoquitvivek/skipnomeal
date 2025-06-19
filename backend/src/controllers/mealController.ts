@@ -2,6 +2,17 @@ import { Request, Response } from "express";
 import Meal from "../models/meal";
 import FoodItem from "../models/foodItem";
 
+// Types
+type Macros = {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  quantity?: number; // For serving macros, quantity is included
+};
+
+type ServingMacros = Record<string, Macros>; // e.g. { "Normal": {...}, "Large": {...} }
+
 export const addMeal = async (req: Request, res: Response): Promise<any> => {
   try {
     const { name, foods, date } = req.body;
@@ -31,13 +42,28 @@ export const addMeal = async (req: Request, res: Response): Promise<any> => {
       const foodId = typeof item.foodItem === 'string' ? item.foodItem : item.foodItem._id?.toString();
       const food = foundItems.find(f => f._id.toString() === foodId);
 
-      if (food) {
-        const baseQty = food.quantity || 100;
+      if (!food) continue;
+
+      if (food.quantityType === "serving") {
+        const servingSize = item.servingSize; // e.g., "Large"
+        // FIX: Use object access for servingLabel
+        const servingMacros = food.servingLabel?.[servingSize];
+
+        if (servingMacros) {
+          // In serving, quantity is number of servings like 2 large eggs
+          totalCalories += servingMacros.calories;
+          totalCarbs += servingMacros.carbs;
+          totalProtein += servingMacros.protein;
+          totalFats += servingMacros.fat;
+        }
+      } else {
+        // Gram or ml based
+        const baseQty = food.quantity || 100; // defined quantity in db
         const ratio = item.quantity / baseQty;
-        totalCalories += (food.calories || 0) * ratio;
-        totalCarbs += (food.carbs || 0) * ratio;
-        totalProtein += (food.protein || 0) * ratio;
-        totalFats += (food.fats || 0) * ratio;
+        totalCalories += (food.macros?.calories || 0) * ratio;
+        totalCarbs += (food.macros?.carbs || 0) * ratio;
+        totalProtein += (food.macros?.protein || 0) * ratio;
+        totalFats += (food.macros?.fat || 0) * ratio;
       }
     }
 
@@ -80,7 +106,9 @@ export const editMeal = async (req: Request, res: Response): Promise<any> => {
 
     const foodItemIds = foods.map((f: any) => f.foodItem);
     const foodItems = await FoodItem.find({ _id: { $in: foodItemIds } });
-    const foodItemMap = new Map(foodItems.map(fi => [fi._id.toString(), fi]));
+    const foodItemMap = new Map<string, typeof foodItems[number]>(
+      foodItems.map(fi => [fi._id.toString(), fi])
+    );
 
     let totalCalories = 0;
     let totalCarbs = 0;
@@ -91,13 +119,25 @@ export const editMeal = async (req: Request, res: Response): Promise<any> => {
       const foodId = typeof food.foodItem === 'string' ? food.foodItem : food.foodItem._id?.toString();
       const foodData = foodItemMap.get(foodId);
 
-      if (foodData) {
+      if (!foodData) continue;
+
+      if (foodData.quantityType === "gram" || foodData.quantityType === "ml") {
         const baseQty = foodData.quantity || 100;
         const ratio = food.quantity / baseQty;
-        totalCalories += (foodData.calories || 0) * ratio;
-        totalCarbs += (foodData.carbs || 0) * ratio;
-        totalProtein += (foodData.protein || 0) * ratio;
-        totalFats += (foodData.fats || 0) * ratio;
+        totalCalories += (foodData.macros?.calories || 0) * ratio;
+        totalCarbs += (foodData.macros?.carbs || 0) * ratio;
+        totalProtein += (foodData.macros?.protein || 0) * ratio;
+        totalFats += (foodData.macros?.fat || 0) * ratio;
+      } else if (foodData.quantityType === "serving") {
+        const servingSize = food.servingSize;
+        // FIX: Use object access for servingLabel
+        const servingMacros = foodData.servingLabel?.[servingSize];
+        if (servingMacros) {
+          totalCalories += servingMacros.calories * food.quantity;
+          totalCarbs += servingMacros.carbs * food.quantity;
+          totalProtein += servingMacros.protein * food.quantity;
+          totalFats += servingMacros.fat * food.quantity;
+        }
       }
     }
 

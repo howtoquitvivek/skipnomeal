@@ -4,40 +4,53 @@ import FoodItem from "../models/foodItem";
 
 export const addFoodItem = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { name, carbs, protein, fats, calories, quantityType, quantity, servingLabel } = req.body;
+    const { name, macros, quantityType, quantity, servingLabel } = req.body;
 
-    if (
-      !name ||
-      carbs === undefined ||
-      protein === undefined ||
-      fats === undefined ||
-      calories === undefined ||
-      !quantityType ||
-      quantity === undefined ||
-      (quantityType === "serving" && !servingLabel)
-    ) {
-      return res.status(400).json({ message: "All fields are required." });
+    if (!name || !quantityType || (quantityType !== "serving" && (quantity === undefined || typeof quantity !== "number"))) {
+      return res.status(400).json({ message: "Missing required fields." });
     }
 
-    // Check if a food item with same values already exists
-    const existingFood = await FoodItem.findOne({
-      name,
-    });
+    if (quantityType === "serving") {
+      if (quantity !== null || macros !== null || !servingLabel) {
+        return res.status(400).json({ message: "For 'serving', quantity must be null, macros must be null, and servingLabel is required." });
+      }
+    } else {
+      if (!macros || macros.calories === undefined || macros.protein === undefined || macros.carbs === undefined || macros.fat === undefined) {
+        return res.status(400).json({ message: "Macros must be provided for 'ml' or 'gram'." });
+      }
+    }
+
+    const existingFood = await FoodItem.findOne({ name });
 
     if (existingFood) {
       return res.status(200).json({ message: "Food item already exists", foodItem: existingFood });
     }
 
-    const newFoodItem = new FoodItem({
-      name,
-      carbs,
-      protein,
-      fats,
-      calories,
-      quantityType,
-      quantity,
-      servingLabel: quantityType === "serving" ? servingLabel : null,
-    });
+    const validatedServingLabel =
+  quantityType === "serving"
+    ? Object.entries(servingLabel).reduce((acc, [label, data]: any) => {
+        if (
+          data.quantity === undefined ||
+          data.calories === undefined ||
+          data.protein === undefined ||
+          data.carbs === undefined ||
+          data.fat === undefined
+        ) {
+          throw new Error(`Missing data for serving label: ${label}`);
+        }
+        acc[label] = data;
+        return acc;
+      }, {} as typeof servingLabel)
+    : null;
+
+const newFoodItem = new FoodItem({
+  name,
+  macros: quantityType === "serving" ? null : macros,
+  quantityType,
+  quantity,
+  servingLabel: validatedServingLabel,
+});
+
 
     await newFoodItem.save();
 
@@ -68,22 +81,40 @@ export const deleteFood = async (req: Request, res: Response): Promise<any> => {
 
 export const editFood = async (req: Request, res: Response): Promise<any> => {
   const { id } = req.params;
-  const { name, carbs, protein, fats, calories, quantityType, servingSize } = req.body;
+  const {
+    name,
+    carbs,
+    protein,
+    fats, // you probably meant fat
+    calories,
+    quantityType,
+    servingLabel,
+  } = req.body;
 
   try {
-    const updatedFood = await FoodItem.findByIdAndUpdate(
-      id,
-      {
-        name,
+    const updateData: any = {
+      name,
+      quantityType,
+    };
+
+    if (quantityType === "serving") {
+      updateData.macros = null;
+      updateData.servingLabel = servingLabel;
+      updateData.quantity = null;
+    } else {
+      updateData.macros = {
         carbs,
         protein,
-        fats,
+        fat: fats, // correct field name in schema
         calories,
-        quantityType,
-        servingSize: quantityType === "serving" ? servingSize : null,
-      },
-      { new: true }
-    );
+      };
+      updateData.servingLabel = null;
+      updateData.quantity = 100; // optional default
+    }
+
+    const updatedFood = await FoodItem.findByIdAndUpdate(id, updateData, {
+      new: true,
+    });
 
     if (!updatedFood) {
       return res.status(404).json({ message: "Food item not found" });
