@@ -20,6 +20,6 @@ router.get("/user/me", isAuth, myProfile);
 router.post("/user/forgot", forgotPassword);
 router.post("/user/reset", resetPassword);
 router.post("/user/change-password", isAuth, changePassword);
-router.put("/user/profile", isAuth, updateProfile);
+router.patch("/user/update", isAuth, updateProfile);
 
 export default router;
