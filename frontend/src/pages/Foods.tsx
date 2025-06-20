@@ -21,6 +21,7 @@ type FoodItem = {
   quantityType: "gram" | "ml" | "serving";
   quantity?: number | null;
   servingLabel?: ServingMacros | null;
+  protected?: boolean;
 };
 
 export default function Foods() {
@@ -210,21 +211,22 @@ data.forEach((food) => {
                     </>
                   )}
                 </div>
-
-                <div className="mt-4 flex justify-end space-x-3">
-                  <button
-                    onClick={() => setSelectedFood(food)}
-                    className="text-blue-400 hover:text-blue-600"
-                  >
-                    <Pencil className="w-5 h-5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(food._id)}
-                    className="text-red-400 hover:text-red-600"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
+                {!food.protected && (
+                    <div className="mt-4 flex justify-end space-x-3">
+                      <button
+                        onClick={() => setSelectedFood(food)}
+                        className="text-blue-400 hover:text-blue-600"
+                      >
+                        <Pencil className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(food._id)}
+                        className="text-red-400 hover:text-red-600"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
+                )}
               </div>
             );
           })}

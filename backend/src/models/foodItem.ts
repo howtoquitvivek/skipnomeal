@@ -60,7 +60,7 @@ const FoodItemSchema = new Schema({
   },
 
   servingLabel: {
-    type: Schema.Types.Mixed, // <--- Changed from Map to Mixed/Object
+    type: Schema.Types.Mixed,
     default: null,
     validate: {
       validator: function (this: any, value: any) {
@@ -73,7 +73,14 @@ const FoodItemSchema = new Schema({
     },
   },
 
+  // ✅ Add this field for backend protection logic
+  protected: {
+    type: Boolean,
+    default: false,
+  },
+
 }, { timestamps: true });
+
 
 // Pre-save hook to handle default quantity
 FoodItemSchema.pre("save", function (next) {

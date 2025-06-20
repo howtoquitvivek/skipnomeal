@@ -9,7 +9,7 @@ type Macros = {
 };
 
 type ServingMacros = {
-  [size: string]: Macros & { weight?: number };
+  [size: string]: Macros & { weight?: number } & { quantity?: number };
 };
 
 type FoodItem = {

@@ -28,15 +28,13 @@ const AddFood: React.FC = () => {
   });
 
   // Serving labels and quantities
-  const [servingLabels, setServingLabels] = useState<{label: string, quantity: number}[]>([
-    { label: "Normal", quantity: 100 }
-  ]);
-  
-  // Selected serving label for which macros are known
-  const [selectedServingLabel, setSelectedServingLabel] = useState("Normal");
+  const [servingLabels, setServingLabels] = useState<{label: string, quantity: number}[]>([]);
   
   // New serving label input
   const [newServingLabel, setNewServingLabel] = useState("");
+
+  // Selected serving label for which macros are known
+  const [selectedServingLabel, setSelectedServingLabel] = useState("");
   
   // Macros input for selected serving label
   const [servingMacros, setServingMacros] = useState<Macros>({
@@ -51,7 +49,9 @@ const AddFood: React.FC = () => {
 
   // Recalculate macros when selected serving or macros or serving quantities change
   useEffect(() => {
-    const baseServing = servingLabels.find(s => s.label === selectedServingLabel);
+    const baseServing =
+      servingLabels.find(s => s.label === selectedServingLabel) || servingLabels[0];
+
     if (!baseServing || baseServing.quantity <= 0) return;
 
     const newMacros: ServingMacros = {};
@@ -69,6 +69,13 @@ const AddFood: React.FC = () => {
 
     setAllServingMacros(newMacros);
   }, [selectedServingLabel, servingMacros, servingLabels]);
+
+  useEffect(() => {
+  if (servingLabels.length > 0 && !servingLabels.find(s => s.label === selectedServingLabel)) {
+    setSelectedServingLabel(servingLabels[0].label);
+  }
+}, [servingLabels, selectedServingLabel]);
+
 
   useEffect(() => {
     if (quantityType === "serving") {

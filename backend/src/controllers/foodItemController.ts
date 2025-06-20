@@ -4,7 +4,7 @@ import FoodItem from "../models/foodItem";
 
 export const addFoodItem = async (req: Request, res: Response): Promise<any> => {
   try {
-    const { name, macros, quantityType, quantity, servingLabel } = req.body;
+    const { name, macros, quantityType, quantity, servingLabel, protected: isProtected  } = req.body;
 
     if (!name || !quantityType || (quantityType !== "serving" && (quantity === undefined || typeof quantity !== "number"))) {
       return res.status(400).json({ message: "Missing required fields." });
@@ -49,6 +49,7 @@ const newFoodItem = new FoodItem({
   quantityType,
   quantity,
   servingLabel: validatedServingLabel,
+  protected: isProtected ?? false
 });
 
 
@@ -65,19 +66,27 @@ export const deleteFood = async (req: Request, res: Response): Promise<any> => {
   try {
     const { id } = req.params;
 
-    const deleted = await FoodItem.findByIdAndDelete(id);
+    // 🔍 First fetch the item
+    const food = await FoodItem.findById(id);
 
-    if (!deleted) {
-      res.status(404).json({ message: "Food item not found" });
-      return;
+    if (!food) {
+      return res.status(404).json({ message: "Food item not found" });
     }
 
+    if (food.protected) {
+      return res.status(403).json({ message: "This food item is protected and cannot be deleted." });
+    }
+
+    // ✅ Safe to delete
+    await FoodItem.findByIdAndDelete(id);
     res.status(200).json({ message: "Food item deleted successfully" });
+    
   } catch (error) {
     console.error("Delete food error:", error);
     res.status(500).json({ message: "Server error while deleting food item" });
   }
 };
+
 
 export const editFood = async (req: Request, res: Response): Promise<any> => {
   const { id } = req.params;
